@@ -34,7 +34,7 @@ And now, prepare for the grand finale! 🎉🎉🎉
 So, what are you waiting for? Embark on this extraordinary adventure with LinFo and let your curiosity soar to new heights! Run the script, embrace the magic, and let the world of your Linux system unfold before your eyes!
 
 ⚙️ LinFo: Unveiling the Magic of Your Linux System! ⚙️
-!|       |
+|       |
 | ----- |
-| [LinFo: Unveiling the Magic of Your Linux System!](LinFo.png) |
+| [LinFo- Unveiling the Magic of Your Linux System!](LinFo.png) |
 |       |
