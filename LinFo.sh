@@ -40,25 +40,25 @@ interfaces=$(ip -o link show | awk -F': ' '{print $2}' | grep -v 'lo')
 
 clear
 echo
-echo -e "\n\n${LIGHT_CYAN}            ⚙️    LinFo   ⚙️"
+echo -e "\n\n${YELLOW}             ⚙️    LinFo   ⚙️"
 echo -e "${LIGHT_MAGENTA}      🕵🔎 Powered by  KaotickJ 👽          \n" 
-echo -e "${GREEN}    🌍 OS:${YELLOW} $os"
-echo -e "${GREEN}    🏠 Host:${YELLOW} $host"
-echo -e "${GREEN}    🐧 Kernel:${YELLOW} $kernel"
-echo -e "${GREEN}    ⏲️  Uptime:${YELLOW} $uptime"
-echo -e "${GREEN}    📦 Packages:${YELLOW} $packages"
-echo -e "${GREEN}    🖥️  DE:${YELLOW} $de"
-echo -e "${GREEN}    🎨 Resolution:${YELLOW} $resolution"
-echo -e "${GREEN}    💻 Terminal:${YELLOW} $terminal"
-echo -e "${GREEN}    🔨 Shell:${YELLOW} $shell"
-echo -e "${GREEN}    ⚡️ CPU:${YELLOW} $cpu"
-echo -e "${GREEN}    🎮 GPU:${YELLOW} $gpu"
-echo -e "${GREEN}    🧠 Memory:${YELLOW} $memory"
-echo -e "${GREEN}    💾 Disk Usage:${YELLOW} $disk\n"
+echo -e "${GREEN}    🌍 OS:${LIGHT_CYAN} $os"
+echo -e "${GREEN}    🏠 Host:${LIGHT_CYAN} $host"
+echo -e "${GREEN}    🐧 Kernel:${LIGHT_CYAN} $kernel"
+echo -e "${GREEN}    ⏲️  Uptime:${LIGHT_CYAN} $uptime"
+echo -e "${GREEN}    📦 Packages:${LIGHT_CYAN} $packages"
+echo -e "${GREEN}    🖥️  DE:${LIGHT_CYAN} $de"
+echo -e "${GREEN}    🎨 Resolution:${LIGHT_CYAN} $resolution"
+echo -e "${GREEN}    💻 Terminal:${LIGHT_CYAN} $terminal"
+echo -e "${GREEN}    🔨 Shell:${LIGHT_CYAN} $shell"
+echo -e "${GREEN}    ⚡️ CPU:${LIGHT_CYAN} $cpu"
+echo -e "${GREEN}    🎮 GPU:${LIGHT_CYAN} $gpu"
+echo -e "${GREEN}    🧠 Memory:${LIGHT_CYAN} $memory"
+echo -e "${GREEN}    💾 Disk Usage:${LIGHT_CYAN} $disk\n"
 echo -e "${GREEN}    🌐 Interfaces:\n"
 for interface in $interfaces; do
     ip=$(ip -o addr show dev $interface | awk '$3 == "inet" {print $4}')
-    echo "    	${GREEN}🔗 $interface: ${YELLOW}$ip"
+    echo "    	${GREEN}🔗 $interface: ${LIGHT_CYAN}$ip"
 done
 echo
 echo -e "${RED}
@@ -72,5 +72,5 @@ echo -e "${RED}
      ░ ░    ▒ ░   ░   ░ ░  ░ ░   ░ ░ ░ ▒  
        ░  ░ ░           ░            ░ ░  
 "
-echo -e "     🎈🎈🎈 ${LIGHT_CYAN}y${YELLOW}O${BLUE}u${LIGHT_MAGENTA}'L${RED}l${YELLOW} f${LIGHT_CYAN}L${RED}o${LIGHT_CYAN}A${YELLOW}t${GREEN} ${BLUE}t${LIGHT_MAGENTA}O${GREEN}o! 🎈🎈🎈        ${NC}"
+echo -e "      🎈🎈🎈 ${LIGHT_CYAN}y${YELLOW}O${BLUE}u${LIGHT_MAGENTA}'L${RED}l${YELLOW} f${LIGHT_CYAN}L${RED}o${LIGHT_CYAN}A${YELLOW}t${GREEN} ${BLUE}t${LIGHT_MAGENTA}O${GREEN}o! 🎈🎈🎈        ${NC}"
 tput sgr0
