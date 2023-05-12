@@ -1,0 +1,2 @@
+# LinFo
+ System Info Magic
