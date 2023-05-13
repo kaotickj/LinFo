@@ -53,5 +53,7 @@ So, what are you waiting for? Embark on this extraordinary adventure with LinFo 
 
 ⚙️ LinFo: Unveiling the Magic of Your Linux System! ⚙️
 
-
-[LinFo. Unveiling the Magic of Your Linux System!](LinFo.png)
+|       |
+| ----- |
+| ![LinFo. Unveiling the Magic of Your Linux System!](LinFo.png) |
+|       |
