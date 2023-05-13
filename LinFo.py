@@ -60,6 +60,18 @@ def get_desktop_environment():
     return run_command("echo $XDG_CURRENT_DESKTOP | tr '[:upper:]' '[:lower:]'")
 
 
+def get_window_manager():
+    return run_command("echo $XDG_SESSION_TYPE")
+
+
+def get_theme():
+    return run_command("xfconf-query -c xsettings -p /Net/ThemeName")
+
+
+def get_icon_theme():
+    return run_command("xfconf-query -c xsettings -p /Net/IconThemeName")
+
+
 def get_resolution():
     return run_command("xdpyinfo | awk '/dimensions:/ {print $2}'")
 
@@ -99,6 +111,9 @@ host = get_host_name()
 uptime = get_uptime()
 packages = get_package_count()
 de = get_desktop_environment()
+wm = get_window_manager()
+theme = get_theme()
+icon_theme = get_icon_theme()
 resolution = get_resolution()
 terminal = get_terminal()
 shell = get_shell()
@@ -116,21 +131,23 @@ print(f"{GREEN}    🏠 Host:{LIGHT_CYAN} {host}")
 print(f"{GREEN}    🌽 Kernel:{LIGHT_CYAN} {kernel}")
 print(f"{GREEN}    ⏲️  Uptime:{LIGHT_CYAN} {uptime}")
 print(f"{GREEN}    📦 Packages:{LIGHT_CYAN} {packages}")
-print(f"{GREEN}    🖥️  DE:{LIGHT_CYAN} {de}")
-print(f"{GREEN}    🎨 Resolution:{LIGHT_CYAN} {resolution}")
+print(f"{GREEN}    🖥️  Desktop:{LIGHT_CYAN} {de}")
+print(f"{GREEN}    🖼️  Window Mngr:{LIGHT_CYAN} {wm}")
+print(f"{GREEN}    🎭 Theme:{LIGHT_CYAN} {theme}")
+print(f"{GREEN}    🎨 Icons:{LIGHT_CYAN} {icon_theme}")
+print(f"{GREEN}    📐 Resolution:{LIGHT_CYAN} {resolution}")
 print(f"{GREEN}    💻 Terminal:{LIGHT_CYAN} {terminal}")
 print(f"{GREEN}    🔨 Shell:{LIGHT_CYAN} {shell}")
 print(f"{GREEN}    ⚡️ CPU:{LIGHT_CYAN} {cpu}")
 print(f"{GREEN}    🎮 GPU:{LIGHT_CYAN} {gpu}")
-print(f"{GREEN}    🧠 Memory:{LIGHT_CYAN} {memory}")
+print(f"{GREEN}    🧠 RAM:{LIGHT_CYAN} {memory}")
 print(f"{GREEN}    💾 Disk Usage:{LIGHT_CYAN} {disk}\n")
 print(f"{GREEN}    🌐 Interfaces:\n")
 
 for interface in interfaces.split('\n'):
     ip = run_command(f"ip -o addr show dev {interface} | awk '$3 == \"inet\" {{print $4}}'")
-    print(f"        {GREEN}🔗 {interface}: {LIGHT_CYAN}{ip}")
+    print(f"        {GREEN}🔗 {interface}: {LIGHT_CYAN}{ip}{NC}")
 
-print(f"{NC}")
 
 # ASCII art
 print(f"{RED}")
