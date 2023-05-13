@@ -65,11 +65,11 @@ def get_window_manager():
 
 
 def get_theme():
-    return run_command("xfconf-query -c xsettings -p /Net/ThemeName")
+    return run_command("gsettings get org.gnome.desktop.interface gtk-theme")
 
 
 def get_icon_theme():
-    return run_command("xfconf-query -c xsettings -p /Net/IconThemeName")
+    return run_command("gsettings get org.gnome.desktop.interface icon-theme")
 
 
 def get_resolution():
@@ -142,7 +142,7 @@ print(f"{GREEN}    ⚡️ CPU:{LIGHT_CYAN} {cpu}")
 print(f"{GREEN}    🎮 GPU:{LIGHT_CYAN} {gpu}")
 print(f"{GREEN}    🧠 RAM:{LIGHT_CYAN} {memory}")
 print(f"{GREEN}    💾 Disk Usage:{LIGHT_CYAN} {disk}\n")
-print(f"{GREEN}    🌐 Interfaces:\n")
+print(f"{GREEN}    🌐 Interfaces:")
 
 for interface in interfaces.split('\n'):
     ip = run_command(f"ip -o addr show dev {interface} | awk '$3 == \"inet\" {{print $4}}'")
@@ -159,6 +159,5 @@ print("   ░██████▒░██░▒██░   ▓██░░▒�
 print("   ░ ▒░▓  ░░▓  ░ ▒░   ▒ ▒  ▒ ░   ░ ▒░▒░▒░")
 print("   ░ ░ ▒  ░ ▒ ░░ ░░   ░ ▒░ ░       ░ ▒ ▒░")
 print("     ░ ░    ▒ ░   ░   ░ ░  ░ ░   ░ ░ ░ ▒")
-print("       ░  ░ ░           ░            ░ ░")
 print(
     f"      🎈🎈🎈 {LIGHT_CYAN}y{YELLOW}O{BLUE}u{LIGHT_MAGENTA}'L{RED}l{YELLOW} f{LIGHT_CYAN}L{RED}o{LIGHT_CYAN}A{YELLOW}t{GREEN} {BLUE}t{LIGHT_MAGENTA}O{GREEN}o! 🎈🎈🎈        {NC}")
