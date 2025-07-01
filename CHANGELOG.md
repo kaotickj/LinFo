@@ -1,4 +1,87 @@
-# LinFo Script Changelog: v0.1 → v0.6
+# LinFo Script Changelog: 
+
+
+## v0.6 → v0.7
+07/4/2025
+### Functional Enhancements
+
+#### System Hardening Evaluation:
+
+The `run_hardening_check()` function performs a comprehensive Linux system security assessment and makes hardening recommendations. Here's a breakdown of its features:
+
+---
+
+### **General Features**
+
+* **Colorized Output:** Uses color codes for readability:
+
+  * `${GREEN}` – Success/good
+  * `${RED}` – Errors, misconfigurations
+  * `${BLUE}` – Recommendations
+  * `${YELLOW}` – Informational
+  * `${LIGHT_MAGENTA}` – Process prompts
+
+* **OS Detection:**
+
+  * Determines package manager (`apt`, `dnf`, `yum`, `zypper`, `pacman`) to tailor checks accordingly.
+
+---
+
+### **Hardening Checks Performed**
+
+* **System Updates:**
+
+  * Checks for available package updates using `check_updates_available`.
+
+* **Hardening Tools:**
+
+  * Checks if `fail2ban`, `auditd`, and `aide` are installed and active.
+  * If not present or inactive, gives recommendations.
+
+* **Firewall:**
+
+  * Calls `firewall_check` function to detect and evaluate firewalls (`iptables`, `nftables`, `ufw`, `firewalld`).
+  * Recommends installing a firewall only if **none** are detected.
+
+* **Mandatory Access Control:**
+
+  * For Debian/Ubuntu: checks for AppArmor directory and activity.
+  * For RHEL-based systems: checks for `SELinux` and `firewalld`, and suggests enabling if inactive.
+
+* **SSH Root Login:**
+
+  * Verifies if `PermitRootLogin no` is explicitly set and **uncommented** in `sshd_config`.
+  * Flags and recommends changes if improperly configured.
+
+* **PAM Password Policy:**
+
+  * Looks for `pam_pwquality` or `pam_cracklib` in `/etc/pam.d/common-password`.
+  * Warns if no complexity enforcement is detected and recommends configuring it.
+
+* **Intrusion Detection Systems:**
+
+  * Detects if `aide` is installed or if `ossec` is active via `systemctl`.
+  * Recommends installation if neither is found.
+
+* **Audit Logging:**
+
+  * Confirms if `auditd` is active.
+  * Recommends installing and enabling `auditd` if not.
+
+* **Automatic Security Updates:**
+
+  * Checks for:
+
+    * `unattended-upgrades` (Debian/Ubuntu)
+    * `dnf-automatic` (Fedora/RHEL)
+  * Warns for Arch systems (unsupported).
+  * Recommends installing if missing.
+
+---
+
+
+7/01/2025
+## v0.1 → v0.6
 
 All notable changes to this project will be documented in this file.
 
