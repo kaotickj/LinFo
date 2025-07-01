@@ -1,7 +1,6 @@
 # LinFo v0.7
 
 |                                                              |
-| ------------------------------------------------------------ |
 | ![LinFo. Unveiling the Magic of Your Linux System!](LinFo.png) |
 |                                                              |
 
