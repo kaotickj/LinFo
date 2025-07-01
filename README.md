@@ -1,9 +1,10 @@
 # LinFo v0.6
-|       |
-| ----- |
+
+|                                                              |
+| ------------------------------------------------------------ |
 | ![LinFo. Unveiling the Magic of Your Linux System!](LinFo.png) |
-|       |
-LinFo is a lightweight Linux system information and security enumeration tool designed for quick, comprehensive insights into a target system’s hardware, software, and security posture. It is intended for use by system administrators, penetration testers, and security researchers who need an efficient way to gather system details and identify potential security weaknesses.
+|                                                              |
+| LinFo is a lightweight Linux system information and security enumeration tool designed for quick, comprehensive insights into a target system’s hardware, software, and security posture. It is intended for use by system administrators, penetration testers, and security researchers who need an efficient way to gather system details and identify potential security weaknesses. |
 
 ---
 
@@ -17,7 +18,7 @@ LinFo is a lightweight Linux system information and security enumeration tool de
 - Gathers "loot" relevant for red team operations: suspicious cron jobs, writable directories, SSH authorized keys, shell startup files, and recently modified binaries.
 - Interactive prompts for saving scan or loot reports to file.
 - Supports running with or without root privileges, with full functionality recommended under root.
-- Command-line options for scanning, loot gathering, or both combined.
+- Command-line options for scanning, loot gathering, hardening evaluation or all three combined.
 
 ---
 
@@ -64,12 +65,130 @@ Examples:
 
 ---
 
-## Notes
+Here is the **README section** that thoroughly explains the **command-line switches** (i.e., operational flags) for the script you provided, assuming these are passed as arguments to control the tool's execution:
 
-* Running with root privileges (e.g., via `sudo`) is recommended to ensure full scan accuracy and access to all system information.
-* The loot report can be very detailed; the script will prompt to save output to a file if desired.
-* The script attempts to detect various kernel hardening features and potential security risks, but some checks depend on kernel version and system configuration.
-* Designed for Linux environments only.
+---
+
+## ⚙️ Command-Line Switches
+
+This script supports several operational modes that can be invoked via command-line switches. Each switch enables a distinct functionality for system enumeration, vulnerability assessment, or reporting. The following sections describe each supported switch in detail:
+
+### `--scan`
+
+Performs a **basic security posture scan** of the target Linux system. This includes:
+
+* Root access check
+* Firewall activity check
+* SSH service status
+* SELinux or AppArmor status
+* Kernel hardening flag detection (SMEP, SMAP, NX, stack protector)
+* SUID binary checks (standard and suspicious paths)
+* `/etc/shadow` permissions
+* Crontab directories
+* World-writable directories and files
+* Listening TCP ports
+* Extra users with UID 0 (root-equivalent accounts)
+* Writable NFS/Samba shares
+* Dangerous or malformed `PATH` entries
+* Suspicious background processes (e.g., netcat or socket-based backdoors)
+* Unsigned kernel modules
+* Suspicious environment variables
+
+The results are displayed in the terminal or optionally saved to a timestamped `scan_report_YYYYMMDD_HHMMSS.txt` file.
+
+---
+
+### `--loot`
+
+Executes **loot gathering mode**. This is a more offensive-focused enumeration mode, useful during Red Team operations or internal audit scenarios. It collects:
+
+* Writable temp directories potentially usable for staging malware or C2 implants (`/tmp`, `/var/tmp`, `/dev/shm`)
+* Mounted local and removable filesystems (excluding proc/sys/dev virtual mounts)
+* Active crontab entries for all users
+* Writable binaries in user `$PATH`
+* Existence of files or paths useful for privilege escalation or data exfiltration
+
+You will be prompted to save the output to a file (e.g., `loot_report_YYYYMMDD_HHMMSS.txt`), or view the information in the terminal.
+
+---
+
+### `--hardening-check`
+
+Conducts a **system hardening assessment**. This includes:
+
+* Detection of package manager (APT, DNF, YUM, Zypper, Pacman)
+* Number of pending package updates
+* Status and presence of hardening tools:
+
+  * `fail2ban`
+  * `auditd`
+  * `aide`
+  * `firewalld` / `ufw`
+  * AppArmor or SELinux
+* SSH root login permission check (`PermitRootLogin`)
+* PAM password complexity enforcement (`pam_pwquality` or `pam_cracklib`)
+* Intrusion detection presence (`aide`, `ossec`)
+* Audit logging functionality (`auditd`)
+* Presence of automatic security update mechanisms (`unattended-upgrades`, `dnf-automatic`)
+
+The output helps assess whether the system meets modern hardening baselines. Results can be saved to a `hardening_report_YYYYMMDD_HHMMSS.txt` file.
+
+---
+
+### `--fullscan`
+
+Executes both the **scan** and **loot** functions in a single operation. This is the most comprehensive mode and is useful for full assessments or reporting during incident response or red team recon.
+
+* Executes `--scan`
+* Then runs `--loot`
+
+You will be prompted whether to save the combined output to a timestamped file (e.g., `fullscan_report_YYYYMMDD_HHMMSS.txt`).
+
+---
+
+### Additional Behavior and Flags
+
+* If **run without switches**, the script performs basic host information gathering:
+
+  * OS, hostname, uptime, package count
+  * Desktop environment (if applicable)
+  * Screen resolution, terminal, shell
+  * CPU, GPU, memory, disk usage
+  * Logged-in users and network interfaces with IP/MAC addresses
+
+* Root privileges are **recommended** for complete scan accuracy, especially to access:
+
+  * Full firewall configurations
+  * SUID binaries outside standard paths
+  * Environment variable security checks
+  * Access-controlled cron jobs and audit logs
+
+* If the variable `SKIP_IP=1` is set manually, the script **skips displaying network interface IP addresses**, useful in airgapped/offline assessments or anonymized outputs.
+
+* If `SHOW_ART=1`, an ASCII header banner and attribution will be shown.
+
+---
+
+### 🔐 Permissions Warning
+
+If the script detects it is **not run as root**, it will display a warning, as some features may return incomplete or misleading results without elevated privileges.
+
+---
+
+### Example Usage
+
+```bash
+./LinFo.sh --scan
+./LinFo.sh --loot
+./LinFo.sh --hardening-check
+./FinFo.sh --fullscan
+```
+
+Each mode will prompt you to save the output or display it directly, based on your interaction.
+
+---
+
+Let me know if you'd like the above turned into `README.md` markdown or formatted for GitHub.
 
 ---
 
@@ -88,5 +207,3 @@ Contributions, bug reports, and feature requests are welcome. Please open issues
 ## Disclaimer
 
 Use this tool responsibly and only on systems where you have explicit permission to perform security assessments.
-
-
