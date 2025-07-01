@@ -65,10 +65,6 @@ Examples:
 
 ---
 
-Here is the **README section** that thoroughly explains the **command-line switches** (i.e., operational flags) for the script you provided, assuming these are passed as arguments to control the tool's execution:
-
----
-
 ## ⚙️ Command-Line Switches
 
 This script supports several operational modes that can be invoked via command-line switches. Each switch enables a distinct functionality for system enumeration, vulnerability assessment, or reporting. The following sections describe each supported switch in detail:
@@ -185,10 +181,6 @@ If the script detects it is **not run as root**, it will display a warning, as s
 ```
 
 Each mode will prompt you to save the output or display it directly, based on your interaction.
-
----
-
-Let me know if you'd like the above turned into `README.md` markdown or formatted for GitHub.
 
 ---
 
