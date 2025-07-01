@@ -1,8 +1,8 @@
 # LinFo v0.7
 
-|                                                              |
-| ![LinFo. Unveiling the Magic of Your Linux System!](LinFo.png) |
-|                                                              |
+                                                              
+![LinFo. Unveiling the Magic of Your Linux System!](LinFo.png)
+
 
 > LinFo is a lightweight Linux system information and security enumeration tool designed for quick, comprehensive insights into a target system’s hardware, software, and security posture. It is intended for use by system administrators, penetration testers, and security researchers who need an efficient way to gather system details and identify potential security weaknesses. 
 
