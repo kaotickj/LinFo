@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### General Changes
 
 * **Version incremented from 0.1 to 0.5**, reflecting major improvements and feature additions.
-* **Author name updated from "kaotickj" to "Kaotick Jay".**
 * Added a **configuration section** with flags: `SHOW_ART`, `SKIP_IP`, `RUN_SCAN`, and `RUN_LOOT`.
 * **Introduced command-line argument parsing** with detailed options for `--scan`, `--loot`, `--c2ready`, `--fullscan`, and help flags.
 * Added **help message output** with detailed descriptions, usage examples, and notes.
@@ -117,14 +116,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `--scan` → runs security scan report.
   * `--loot` or `--c2ready` → runs loot gathering.
   * `--fullscan` → runs both scan and loot, skipping IP info for speed.
-
----
-
-### Banner & Aesthetic
-
-* Moved banner display below main output and under a configuration flag `SHOW_ART`.
-* Banner and intro text kept, now output only if `SHOW_ART=1`.
-* Banner colors and emoji preserved, with minor color code adjustments.
 
 ---
 
