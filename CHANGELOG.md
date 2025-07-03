@@ -1,4 +1,4 @@
-# LinFo Script Changelog: v0.1 → v0.5
+# LinFo Script Changelog: v0.1 → v0.6
 
 All notable changes to this project will be documented in this file.
 
@@ -131,7 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Summary
 
-The update from LinFo v0.1 to v0.5 is a comprehensive overhaul adding:
+The update from LinFo v0.1 to v0.6 is a comprehensive overhaul adding:
 
 * Command-line interface with options and help.
 * Modular system info functions.
