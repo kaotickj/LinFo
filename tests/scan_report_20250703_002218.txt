@@ -1,0 +1,76 @@
+[1;33m    ####################[0m
+[1;33m    #  SECURITY REPORT  [0m
+[1;33m    ####################[0m
+----------------------------
+    🔥 Root access: [1;32mYES[0m
+    🧱 Firewall active: [1;32mYES[0m
+    🔐 SSH running: [1;31mNO[0m
+    🧬 AppArmor: [1;32mEnabled[0m
+
+[1;33m    ##############################[0m
+[1;33m    #  Kernel Security Features  #[0m
+[1;33m    ##############################[0m
+    🔐 SELinux Enforcement: [1;33mNot installed[0m
+    🛡️ AppArmor: [1;96mEnabled[0m
+    🛡️ Yama ptrace_scope: [1;96m0 (0=off, 1=strict)[0m
+    🔍 Kernel Hardening Flags:
+    🛡️ Grsecurity: [1;33mNot detected[0m
+    🛡️ Stack Protector Config: [1;96mUnknown[0m
+    💥 NX Bit support: [1;32mYes[0m
+
+    🧪 Kernel Exploitable: [1;32mUnlikely (>= 5.15)[0m
+    📜 SUID Binaries (standard paths): [1;96m27 found[0m
+    📜 Suspicious SUID binaries outside standard paths:
+       [1;33m/opt/VBoxGuestAdditions-7.0.6/bin/VBoxDRMClient[0m
+       [1;33m/usr/lib/mysql/plugin/auth_pam_tool_dir/auth_pam_tool[0m
+       [1;33m/usr/lib/xorg/Xorg.wrap[0m
+       [1;33m/usr/lib/openssh/ssh-keysign[0m
+       [1;33m/usr/lib/polkit-1/polkit-agent-helper-1[0m
+       [1;33m/usr/lib/dbus-1.0/dbus-daemon-launch-helper[0m
+       [1;33m/usr/lib/chromium/chrome-sandbox[0m
+       [1;33m/var/lib/docker/overlay2/6631cacc71d6fea1e3761006d1bdeb7a6c89293620b400cd3d3834c8c85b99b9/diff/usr/lib/openssh/ssh-keysign[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/usr/bin/newgrp[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/usr/bin/gpasswd[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/usr/bin/passwd[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/usr/bin/chsh[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/usr/bin/chfn[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/bin/mount[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/bin/su[0m
+       [1;33m/var/lib/docker/overlay2/24129f195f69960baa2e3db77d1bc4743155396b8b4ddcbf7cb4809fc1b47a4b/diff/bin/umount[0m
+    🔒 /etc/shadow permissions: [1;96m640[0m
+    👁️  Crontabs detected: [1;96m26 found[0m
+    📁 World-writable dirs: [1;96m31[0m
+    📄 World-writable files: [1;96m37[0m
+    🌐 Listening TCP ports:
+       0.0.0.0:52543
+       10.0.2.18:3702
+       239.255.255.250:3702
+       *:59740
+       [fe80::a00:27ff:fe8b:c4a4]%eth0:3702
+       [ff02::c]%eth0:3702
+       [fe80::a00:27ff:fe8b:c4a4]%eth0:546
+       127.0.0.1:5433
+       127.0.0.1:5432
+       [::1]:5432
+       [::1]:5433
+    ✅ No extra UID 0 users detected
+    📁 Writable NFS/Samba Shares:
+    💣 PATH DANGER:
+       [1;33m⚠️  Writable PATH entry: /usr/local/sbin[0m
+       [1;33m⚠️  Writable PATH entry: /usr/local/bin[0m
+       [1;33m⚠️  Writable PATH entry: /usr/sbin[0m
+       [1;33m⚠️  Writable PATH entry: /usr/bin[0m
+       [1;33m⚠️  Writable PATH entry: /sbin[0m
+       [1;33m⚠️  Writable PATH entry: /bin[0m
+    🧠 Unusual background processes:
+       [1;33mroot           6  0.0  0.0      0     0 ?        I<   Jul01   0:00 [kworker/R-sync_wq][0m
+       [1;33mkaotickj    1151  0.0  0.0 381200  7596 ?        Ssl  Jul01   0:00 /usr/libexec/at-spi-bus-launcher[0m
+       [1;33mpostgres   10927  0.0  0.0 220248  7548 ?        Ss   Jul01   0:00 postgres: 17/main: autovacuum launcher[0m
+       [1;33mpostgres   10928  0.0  0.0 220224  6812 ?        Ss   Jul01   0:00 postgres: 17/main: logical replication launcher[0m
+       [1;33mpostgres   10933  0.0  0.0 225252  8868 ?        Ss   Jul01   0:01 postgres: 16/main: autovacuum launcher[0m
+       [1;33mpostgres   10934  0.0  0.0 225240  8244 ?        Ss   Jul01   0:00 postgres: 16/main: logical replication launcher[0m
+       [1;33mroot      329316  0.0  0.0   6728  2516 ?        S    Jul02   0:00 dbus-launch --autolaunch=9b32a23ffb9b45229d7ab08c0ef6cf6a --binary-syntax --close-stderr[0m
+    🧬 Unsigned Kernel Modules:
+    🧪 Suspicious env variables:
+       [1;31mSuspicious variables found[0m
+----------------------------
