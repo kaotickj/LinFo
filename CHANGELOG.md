@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### General Changes
 
-* **Version incremented from 0.1 to 0.5**, reflecting major improvements and feature additions.
+* **Version incremented from 0.1 to 0.6**, reflecting major improvements and feature additions.
 * Added a **configuration section** with flags: `SHOW_ART`, `SKIP_IP`, `RUN_SCAN`, and `RUN_LOOT`.
 * **Introduced command-line argument parsing** with detailed options for `--scan`, `--loot`, `--c2ready`, `--fullscan`, and help flags.
 * Added **help message output** with detailed descriptions, usage examples, and notes.
