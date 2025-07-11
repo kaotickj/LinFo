@@ -767,7 +767,7 @@ run_scan_report() {
         fi
     done
 
-# Suspicious environment variables (detailed analysis)
+# Suspicious environment variables
 echo -e "    🧪 Suspicious env variables:"
 
 suspicious_found=0
@@ -1048,8 +1048,8 @@ parts=(
   "${NC}"
 )
 
-# Animate printing each part with a small delay
-echo -n ""  # start with empty line (no newline)
+
+echo -n ""
 for part in "${parts[@]}"; do
   echo -ne "$part"
   sleep 0.1
