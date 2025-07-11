@@ -72,6 +72,7 @@ while [[ $# -gt 0 ]]; do
     --fullscan)
       RUN_SCAN=1
       RUN_LOOT=1
+      RUN_HARDENING=1
       SKIP_IP=1
       ;;
     --hardening-check) 
@@ -376,6 +377,8 @@ fullscan_output_handler() {
                 run_scan_report
                 echo
                 run_loot_gather
+                echo
+                run_hardening_check
                 return
             fi
         fi
@@ -385,12 +388,16 @@ fullscan_output_handler() {
             run_scan_report
             echo
             run_loot_gather
+            echo
+            run_hardening_check
         } > "$output_file" 2>&1
         echo -e "${GREEN}    Full scan report saved successfully.${NC}"
     else
         run_scan_report
         echo
         run_loot_gather
+        echo
+        run_hardening_check
     fi
 }
 
@@ -478,7 +485,7 @@ run_hardening_check() {
     
     if [[ "$PKG_MANAGER" == "apt" ]]; then
 
-        [[ -d /etc/apparmor.d ]] && check_feature_enabled "apparmor" || echo -e "${BLUE}       🔧 Suggest enabling AppArmor} (if supported)${NC}"
+        [[ -d /etc/apparmor.d ]] && check_feature_enabled "apparmor" || echo -e "${BLUE}       🔧 Suggest enabling AppArmor (if supported)${NC}"
 
     elif [[ "$PKG_MANAGER" =~ dnf|yum ]]; then
         if check_package_installed "firewalld"; then
@@ -581,17 +588,41 @@ echo -e "${GREEN}    ⚡️ CPU:${LIGHT_CYAN} $(get_cpu)${NC}"
 echo -e "${GREEN}    🎮 GPU:${LIGHT_CYAN} $(get_gpu)${NC}"
 echo -e "${GREEN}    🧠 Memory:${LIGHT_CYAN} $(get_memory)${NC}"
 echo -e "${GREEN}    💾 Disk Usage:${LIGHT_CYAN} $(get_disk)${NC}\n"
+echo -e "${GREEN}    📡 Virtualization: ${NC}$(systemd-detect-virt 2>/dev/null || echo "Unknown")"
+echo -e "${GREEN}    📂 Mounted Partitions:${LIGHT_CYAN}"
+lsblk -o NAME,FSTYPE,SIZE,MOUNTPOINT | grep -v "loop" | grep -v "sr0" | awk '{print "    " $0}'
+
 echo
+echo -e "${LIGHT_MAGENTA}         User Info"
 echo -e "${GREEN}    👥 Logged-in users:${LIGHT_CYAN} $logged_in_users${NC}"
+echo -e "${GREEN}    📜 Last Logins:${BLUE}"
+last -n 3 | head -n 3 | awk '{print "    " $1, $5, $6, $7, $8}'
+echo -e "${GREEN}    ⚠️  Users with UID 0:${RED} $(awk -F: '$3 == 0 {print $1}' /etc/passwd | xargs)"
+echo -e "${GREEN}    🛡️  Sudoers Group Members:${YELLOW} $(getent group sudo | cut -d: -f4)"
+
 
 if [ "$SKIP_IP" -eq 0 ]; then
   echo -e "${GREEN}    🌐 Network Interfaces and IPs:${NC}\n"
   for iface in $(get_interfaces); do
     ip=$(get_interface_ip "$iface")
     mac=$(ip link show "$iface" | awk '/link\/ether/ {print $2}')
-    echo -e "    	${GREEN}🔗 $iface: ${LIGHT_CYAN}IP: $ip | MAC: $mac${NC}"
+    echo -e "      ${GREEN}🔗 $iface: ${LIGHT_CYAN}IP: $ip | MAC: $mac${NC}"
   done
 fi
+echo
+echo -e "${GREEN}    🚪 Default Gateway:${LIGHT_CYAN} $(ip route | grep default | awk '{print $3}')"
+echo -e "${GREEN}    🧭 DNS Servers:${LIGHT_CYAN}"
+grep "nameserver" /etc/resolv.conf | awk '{print "    " $2}'
+echo
+# Open Ports (if available)
+if command -v ss &>/dev/null; then
+    echo -e "${GREEN}    🔓 Open TCP/UDP Ports (Listening):${LIGHT_CYAN}"
+    ss -tuln | grep LISTEN | awk '{print "    " $0}'
+elif command -v netstat &>/dev/null; then
+    echo -e "${GREEN}    🔓 Open TCP/UDP Ports (Listening):${LIGHT_CYAN}"
+    netstat -tuln | grep LISTEN | awk '{print "    " $0}'
+fi
+
 
 ####################
 #  SECURITY MODES
