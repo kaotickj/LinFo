@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import subprocess
 import sys
 import uuid
 
@@ -248,6 +249,94 @@ def rollback(receipt: str) -> dict:
     return {"result": "rolled_back", "receipt": receipt}
 
 
+
+# Independent root-side allowlists: GUI-provided package identifiers and unit names
+# are never trusted as executable commands or paths.
+PACKAGE_BY_MANAGER = {
+    "auditd": {"apt": "auditd", "dnf": "audit", "yum": "audit", "zypper": "audit", "pacman": "audit"},
+    "fail2ban": {m: "fail2ban" for m in ("apt", "dnf", "yum", "zypper", "pacman")},
+    "aide": {m: "aide" for m in ("apt", "dnf", "yum", "zypper", "pacman")},
+    "ssh_server": {"apt": "openssh-server", "dnf": "openssh-server", "yum": "openssh-server",
+                   "zypper": "openssh", "pacman": "openssh"},
+    "password_quality": {"apt": "libpam-pwquality", "dnf": "libpwquality", "yum": "libpwquality",
+                         "zypper": "pam_pwquality", "pacman": "libpwquality"},
+    "unattended": {"apt": "unattended-upgrades", "dnf": "dnf-automatic", "yum": "dnf-automatic"},
+    "ufw": {"apt": "ufw", "dnf": "ufw", "pacman": "ufw"},
+    "firewalld": {"apt": "firewalld", "dnf": "firewalld", "yum": "firewalld",
+                  "zypper": "firewalld", "pacman": "firewalld"},
+}
+SERVICE_ALLOWLIST = {"auditd.service", "fail2ban.service", "systemd-timesyncd.service",
+                     "chrony.service", "chronyd.service", "telnet.socket", "rsh.socket", "rexec.socket"}
+
+
+def detect_package_manager() -> tuple[str, str]:
+    try:
+        data = {}
+        for line in Path('/etc/os-release').read_text(encoding='utf-8').splitlines():
+            if '=' in line:
+                key, value = line.split('=', 1)
+                data[key] = value.strip().strip('"').strip("'")
+        ids = {data.get('ID', ''), *data.get('ID_LIKE', '').split()}
+    except OSError:
+        ids = set()
+    # Paths are deliberately fixed to root-owned system executables.
+    options = []
+    if ids & {'debian', 'ubuntu', 'linuxmint', 'pop'}:
+        options = [('apt', '/usr/bin/apt-get')]
+    elif ids & {'fedora', 'rhel', 'centos', 'rocky', 'almalinux', 'ol'}:
+        options = [('dnf', '/usr/bin/dnf'), ('yum', '/usr/bin/yum')]
+    elif ids & {'opensuse', 'opensuse-leap', 'opensuse-tumbleweed', 'suse', 'sles'}:
+        options = [('zypper', '/usr/bin/zypper')]
+    elif ids & {'arch', 'manjaro', 'endeavouros'}:
+        options = [('pacman', '/usr/bin/pacman')]
+    for name, path in options:
+        if Path(path).is_file():
+            return name, path
+    raise RuntimeError('Unsupported or unrecognized distribution/package manager; no changes made')
+
+
+def run_allowed(argv: list[str], timeout: int = 360) -> dict:
+    # No shell, user-controlled environment, script names or executable paths.
+    env = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C',
+           'HOME': '/root', 'DEBIAN_FRONTEND': 'noninteractive'}
+    result = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True,
+                            text=True, errors='replace', timeout=timeout, env=env, check=False)
+    if result.returncode:
+        raise RuntimeError(f'Command exited {result.returncode}: {result.stderr[-1600:] or result.stdout[-1600:]}')
+    return {'result': 'executed', 'program': Path(argv[0]).name,
+            'details': result.stdout[-1200:], 'reboot_or_reconfiguration_may_be_required': True}
+
+
+def install_package(key: str) -> dict:
+    if key not in PACKAGE_BY_MANAGER:
+        raise RuntimeError('Package is not allowlisted')
+    manager, executable = detect_package_manager()
+    package = PACKAGE_BY_MANAGER[key].get(manager)
+    if not package:
+        raise RuntimeError('This package is not mapped for the detected distribution')
+    argv = {
+        'apt': [executable, '-y', 'install', package],
+        'dnf': [executable, '-y', 'install', package],
+        'yum': [executable, '-y', 'install', package],
+        'zypper': [executable, '--non-interactive', 'install', package],
+        'pacman': [executable, '--noconfirm', '-S', '--needed', package],
+    }[manager]
+    result = run_allowed(argv)
+    result.update({'package': package, 'package_manager': manager, 'undo': 'Package removal is not automated'})
+    return result
+
+
+def manage_service(operation: str, unit: str) -> dict:
+    if unit not in SERVICE_ALLOWLIST or operation not in {'enable', 'disable'}:
+        raise RuntimeError('Service operation not allowlisted')
+    if unit in {'telnet.socket', 'rsh.socket', 'rexec.socket'} and operation != 'disable':
+        raise RuntimeError('Legacy remote login units may only be disabled')
+    result = run_allowed(['/usr/bin/systemctl', operation, '--now', unit], timeout=90)
+    result.update({'unit': unit, 'operation': operation,
+                   'undo': f'select the opposite service operation after verifying dependencies'})
+    return result
+
+
 def main() -> int:
     if os.geteuid() != 0:
         raise RuntimeError("Helper must be invoked with PolicyKit authorization/root")
@@ -257,6 +346,10 @@ def main() -> int:
         result = apply(sys.argv[2:])
     elif sys.argv[1] == "rollback" and len(sys.argv) == 3:
         result = rollback(sys.argv[2])
+    elif sys.argv[1:3] == ["package", "install"] and len(sys.argv) == 4:
+        result = install_package(sys.argv[3])
+    elif sys.argv[1] == "service" and len(sys.argv) == 4:
+        result = manage_service(sys.argv[2], sys.argv[3])
     else:
         raise RuntimeError("Unsupported operation")
     print(json.dumps(result, indent=2))

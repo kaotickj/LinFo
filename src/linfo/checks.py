@@ -11,6 +11,7 @@ import stat
 from typing import Callable, Iterator
 from .models import Finding
 from .probe import Probe
+from .management import detect_platform
 
 # Restrict auto-remediation to reversible, host-local sysctl changes.
 ACTIONS: dict[str, dict[str, str]] = {
@@ -288,9 +289,35 @@ def package_findings(probe: Probe, profile: str) -> Iterator[Finding]:
                       f"unattended-upgrades installed: {installed.ok and 'install ok installed' in installed.out}; periodic enabled: {enabled}",
                       "Review unattended-upgrades sources, schedules and reboot policy.")
     else:
-        yield finding("package.pending", "Packages", "Package updates", "UNKNOWN", "medium",
-                      "This release supports detailed APT assessment; other package managers require adapter implementation",
-                      "No update-availability claim made")
+        platform = detect_platform()
+        manager = platform.package_manager
+        candidates = {
+            'dnf': ('dnf', 'check-update', '--quiet'),
+            'yum': ('yum', 'check-update', '--quiet'),
+            'zypper': ('zypper', '--non-interactive', 'list-updates'),
+            'pacman': ('pacman', '-Qu'),
+        }
+        if manager not in candidates:
+            yield finding('package.pending', 'Packages', 'Cached package updates', 'UNKNOWN', 'medium',
+                          'No supported package manager detected', 'Not equivalent to zero updates')
+        else:
+            r = probe.run(*candidates[manager], timeout=18)
+            # dnf/yum exit code 100 means updates available, not a command failure.
+            if manager in {'dnf', 'yum'} and r.returncode in (0, 100):
+                status = 'WARN' if r.returncode == 100 else 'PASS'
+                summary = 'Cached metadata indicates updates' if status == 'WARN' else 'No cached updates detected'
+            elif manager == 'pacman' and r.returncode in (0, 1):
+                status = 'WARN' if r.out.strip() else 'PASS'
+                summary = 'Local sync DB contains pending package upgrades' if status == 'WARN' else 'No cached updates detected'
+            elif manager == 'zypper' and r.ok:
+                body = [row for row in r.out.splitlines() if ' | ' in row and not row.lstrip().startswith(('S |', '--'))]
+                status = 'WARN' if body else 'PASS'
+                summary = 'Cached zypper metadata indicates updates' if body else 'No cached updates detected'
+            else:
+                status, summary = 'UNKNOWN', 'Package manager update query failed'
+            yield finding('package.pending', 'Packages', 'Cached package updates', status, 'medium',
+                          summary, (r.out or r.error)[:300],
+                          'Refresh metadata and validate updates using the distro-native package manager.')
 
 
 def integrity_findings(probe: Probe, profile: str) -> Iterator[Finding]:

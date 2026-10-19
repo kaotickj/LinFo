@@ -28,7 +28,7 @@ class AuditReport:
     inventory: dict[str, Any]
     findings: list[Finding] = field(default_factory=list)
     created_utc: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    version: str = "0.6.0a1"
+    version: str = "0.7.0a1"
 
     def counts(self) -> dict[str, int]:
         return {s: sum(x.status == s for x in self.findings)

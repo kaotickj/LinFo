@@ -10,7 +10,6 @@ requires-python = ">=3.10"
 authors = [{name = "Kaotick Jay"}]
 dependencies = ["PyQt6>=6.5,<7"]
 keywords = ["linux", "hardening", "auditing", "security", "pyqt6"]
-classifiers = ["License :: OSI Approved :: GNU General Public License v3 (GPLv3)", "Operating System :: POSIX :: Linux"]
 
 [project.scripts]
 linfo = "linfo.__main__:main"

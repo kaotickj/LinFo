@@ -7,6 +7,7 @@ import socket
 from .checks import hardening_checks
 from .models import AuditReport
 from .probe import Probe
+from .management import detect_platform
 
 
 def os_pretty() -> str:
@@ -18,8 +19,12 @@ def os_pretty() -> str:
 
 
 def inventory(probe: Probe) -> dict:
+    platform_info = detect_platform()
     info = {
         "operating_system": os_pretty(),
+        "distribution_id": platform_info.distro_id,
+        "package_manager": platform_info.package_manager or "Unsupported/undetected",
+        "admin_group": platform_info.admin_group,
         "hostname": socket.gethostname(),
         "kernel": platform.release(),
         "architecture": platform.machine(),

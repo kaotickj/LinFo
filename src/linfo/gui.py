@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFileDialog, QH
                              QProgressBar, QPushButton, QSplitter, QTabWidget, QTableWidget,
                              QTableWidgetItem, QVBoxLayout, QWidget, QInputDialog, QFrame)
 from .checks import ACTION_LABELS
+from .management import detect_platform, available_editors, actions_for, editor_command, ManagementAction
 from .models import AuditReport, Finding
 from .reports import export_report, compare_reports
 from .scanner import scan
@@ -63,7 +64,7 @@ class ApplyWorker(QThread):
     def run(self):
         try:
             r = subprocess.run(["pkexec", HELPER, *self.args], capture_output=True,
-                               text=True, errors="replace", timeout=75, stdin=subprocess.DEVNULL)
+                               text=True, errors="replace", timeout=420, stdin=subprocess.DEVNULL)
             self.done.emit((r.returncode, r.stdout[-4000:], r.stderr[-1800:]))
         except Exception as exc:
             self.done.emit((1, "", f"{type(exc).__name__}: {exc}"))
@@ -73,6 +74,7 @@ class MainWindow(QMainWindow):
     def __init__(self, profile: str):
         super().__init__()
         self.report: AuditReport | None = None
+        self.system_platform = detect_platform()
         self.worker = None
         self.apply_worker = None
         self.setWindowTitle("LinFo | Linux Security Hardening")
@@ -171,14 +173,15 @@ class MainWindow(QMainWindow):
         line.addStretch()
         layout.addLayout(line)
         splitter = QSplitter(Qt.Orientation.Vertical)
-        self.findings = QTableWidget(0, 5)
-        self.findings.setHorizontalHeaderLabels(["Status", "Severity", "Category", "Control", "Summary"])
+        self.findings = QTableWidget(0, 6)
+        self.findings.setHorizontalHeaderLabels(["Status", "Severity", "Category", "Control", "Summary", "Manage"])
         self.findings.setAlternatingRowColors(True)
         self.findings.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.findings.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.findings.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.findings.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self.findings.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        self.findings.setColumnWidth(5, 135)
         self.findings.itemSelectionChanged.connect(self.show_finding)
         splitter.addWidget(self.findings)
         self.detail = QPlainTextEdit()
@@ -191,9 +194,29 @@ class MainWindow(QMainWindow):
     def _remediation(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        self.rem_intro = QLabel("Only narrow, reversible sysctl fixes can be applied automatically. Review each change before authorization.")
+        self.rem_intro = QLabel("Choose individual findings to install missing security tools, manage supported services, or edit configuration. Sysctl transactions create rollback receipts. Every privileged operation requires explicit authorization.")
         self.rem_intro.setWordWrap(True)
         layout.addWidget(self.rem_intro)
+        editor_layout = QHBoxLayout()
+        editor_layout.addWidget(QLabel("Configuration editor"))
+        self.editor_choice = QComboBox()
+        self._editors = available_editors()
+        for editor_name, editor_path in self._editors:
+            self.editor_choice.addItem(f"{editor_name} ({editor_path})", editor_path)
+        if not self._editors:
+            self.editor_choice.addItem("No graphical editor found")
+        editor_layout.addWidget(self.editor_choice)
+        editor_layout.addWidget(QLabel("System configuration"))
+        self.config_choice = QComboBox()
+        from .management import EDITABLE_CONFIGS
+        for label, filename in EDITABLE_CONFIGS.items():
+            self.config_choice.addItem(f"{label}: {filename}", filename)
+        editor_layout.addWidget(self.config_choice)
+        open_button = QPushButton("Open Configuration…")
+        open_button.clicked.connect(lambda: self.open_configuration(self.config_choice.currentData()))
+        editor_layout.addWidget(open_button)
+        editor_layout.addStretch()
+        layout.addLayout(editor_layout)
         self.action_table = QTableWidget(0, 3)
         self.action_table.setHorizontalHeaderLabels(["Select", "Action", "Affected controls"])
         self.action_table.setAlternatingRowColors(True)
@@ -203,7 +226,7 @@ class MainWindow(QMainWindow):
         self.rem_note = QPlainTextEdit()
         self.rem_note.setReadOnly(True)
         self.rem_note.setMaximumHeight(125)
-        self.rem_note.setPlainText("No changes without explicit approval. Requires a root-owned helper installed to /usr/local/libexec/linfo-helper and PolicyKit (pkexec). Each application creates a rollback receipt.\n\nCAUTION: kernel debugging workflows may rely on unrestricted ptrace. Review network service requirements before applying redirect settings.")
+        self.rem_note.setPlainText("Privilege separation: run the GUI as your normal desktop user. Install the root-owned helper once with sudo ./scripts/install-helper.sh. Changes will request authorization using PolicyKit (pkexec); configuration editing uses sudoedit in a terminal with your selected editor. Package installs and service changes are not automatically rollbackable. Firewall activation and SSH authentication changes require manual validation to prevent lockout.")
         layout.addWidget(self.rem_note)
         buttons = QHBoxLayout()
         self.apply_button = QPushButton("Review and Apply Selected")
@@ -266,6 +289,7 @@ class MainWindow(QMainWindow):
         self.overview.setPlainText(
             f"Host: {report.inventory.get('hostname')}\nOS: {report.inventory.get('operating_system')}\n"
             f"Kernel: {report.inventory.get('kernel')}\nProfile: {report.profile}\n"
+            f"Distribution ID: {report.inventory.get('distribution_id')}\nPackage manager: {report.inventory.get('package_manager')}\nAdministrative group: {report.inventory.get('admin_group')}\n"
             f"Privilege: {'root' if report.inventory.get('root_privileges') else 'unprivileged (some checks may be UNKNOWN)'}\n\n"
             f"Controls assessed: {len(report.findings)}\nFailures: {c['FAIL']}\nWarnings: {c['WARN']}\n"
             f"Passed: {c['PASS']}\nUnknown: {c['UNKNOWN']}\nInformational: {c['INFO']}\n\n"
@@ -296,6 +320,10 @@ class MainWindow(QMainWindow):
                 if j == 0:
                     item.setForeground(QColor(STATUS_COLORS.get(f.status, "#ffffff")))
                 self.findings.setItem(i, j, item)
+            plans = actions_for(f, self.system_platform, installed=lambda name: shutil.which(name) is not None)
+            btn = QPushButton("Manage…" if plans else "Review")
+            btn.clicked.connect(lambda _checked=False, item=f: self.manage_finding(item))
+            self.findings.setCellWidget(i, 5, btn)
         self.detail.clear()
 
     def show_finding(self):
@@ -309,6 +337,65 @@ class MainWindow(QMainWindow):
                 f"Category: {f.category}\n\n{f.summary}\n\nEvidence:\n{f.evidence or 'None'}\n\n"
                 f"Recommendation: {f.recommendation or 'Manual review'}\n"
                 + (f"\nReference: {f.reference}" if f.reference else ""))
+
+    def manage_finding(self, finding: Finding):
+        plans = actions_for(finding, self.system_platform, installed=lambda name: shutil.which(name) is not None)
+        if not plans:
+            QMessageBox.information(self, "Manual assessment required",
+                f"{finding.title} [{finding.id}]\n\n{finding.recommendation or finding.summary}\n\n"
+                "This control does not have a verified safe automatic remediation yet. The GUI will never silently change security policy.")
+            return
+        labels = [p.label for p in plans]
+        choice, ok = QInputDialog.getItem(self, f"Manage: {finding.title}",
+                                          "Select an operation:", labels, 0, False)
+        if not ok:
+            return
+        self.manage_action(plans[labels.index(choice)])
+
+    def manage_action(self, action: ManagementAction):
+        if action.category == 'editor':
+            self.open_configuration(action.args[0])
+            return
+        if not self._helper_ready():
+            QMessageBox.warning(self, "Administrator helper unavailable",
+                "To manage packages and services, first install the privileged helper using:\n\n"
+                "sudo ./scripts/install-helper.sh\n\n"
+                "The normal-user GUI calls this root-owned helper through PolicyKit, which will prompt for authorization."
+                " Ensure that your account is authorized through the distro's sudo/wheel or PolicyKit policy.")
+            return
+        warning = "\n\nIMPORTANT: Package and service operations may change system behavior. "
+        if action.args[:2] == ('service', 'disable'):
+            warning += "Disabling a service can affect monitoring, authentication, and applications."
+        else:
+            warning += "Review service dependencies, network access, and any upgrade or reboot requirements."
+        response = QMessageBox.question(self, "Authorize system management",
+            f"{action.label}\n\n{action.explanation}{warning}\n\nProceed?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if response == QMessageBox.StandardButton.Yes:
+            self.start_change(list(action.args))
+
+    def open_configuration(self, path: str):
+        editor = self.editor_choice.currentData()
+        if not editor:
+            QMessageBox.warning(self, "No editor found", "Install Kate, Mousepad, Gedit, or another supported graphical editor.")
+            return
+        response = QMessageBox.question(self, "Edit privileged configuration",
+            f"Open {path} in {editor}?\n\nLinFo uses sudoedit. Your editor stays unprivileged, "
+            "and sudo requests credentials in a terminal. Validate configuration syntax and keep a backup before saving. "
+            "Editing SSH, PAM or sudoers incorrectly may lock you out.\n\nContinue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No)
+        if response != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            argv, environment = editor_command(path, editor)
+            subprocess.Popen(argv, env=environment, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+            self.status_label.setText(f"Editor launched: {path}. Review and save in the editor.")
+        except Exception as exc:
+            QMessageBox.warning(self, "Editor launch failed", str(exc))
 
     def refresh_actions(self):
         if not self.report:

@@ -9,7 +9,7 @@ This is a functional **first development milestone**, not an audited, compliant 
 
 ```bash
 sudo apt install python3 python3-venv python3-pip
-cd LinFo
+cd linfo-python
 python3 -m venv .venv
 .venv/bin/pip install -e .
 .venv/bin/linfo
@@ -40,7 +40,7 @@ The CLI emits progress to stderr. JSON is printed to stdout if `--output` is abs
 Only after reviewing the `privileged/linfo-helper` source, install the **root-owned** helper:
 
 ```bash
-sudo sh ./scripts/install-helper.sh
+sudo ./scripts/install-helper.sh
 ```
 
 `pkexec` and a working PolicyKit authentication agent are required for GUI-based changes. No custom policy or passwordless elevation is installed. The helper must exist at `/usr/local/libexec/linfo-helper`, be root-owned and not writable by others. Do **not** run the desktop GUI using `sudo` or `pkexec`.
@@ -89,4 +89,20 @@ python3 -m compileall -q src
 
 ## Licensing
 
-LinFo is distributed under the GNU General Public License v3, consistent with the repository's existing `LICENSE` file. The original Bash implementation remains available as [`LinFo.sh`](LinFo.sh). This development branch contains the Python GUI migration.
+No license has been selected for this derivative release. The original author should choose an explicit license before publication or public distribution.
+
+## Interactive management (v0.7 development)
+
+The Findings table includes a Manage control for each finding. Supported remediations install
+allowlisted packages, enable/disable supported systemd units, apply rollback-capable sysctls,
+or open configuration in a chosen graphical editor through `sudoedit`. Unsupported or high-risk
+findings provide guided manual review, not deceptive one-click actions.
+
+Distro and package-manager detection supports apt, dnf/yum, zypper, and pacman. The unprivileged
+GUI requests PolicyKit authentication for approved helper operations. The helper MUST be installed
+in a root-owned location with `sudo ./scripts/install-helper.sh` before system modifications.
+`sudoedit` uses the desktop terminal and the selected editor so the editor itself stays unprivileged.
+
+A packaged Linux executable is built by `.github/workflows/build-linux.yml` on the development branch.
+Download the `LinFo-Linux-x86_64` Actions artifact and unpack its tarball. The executable is
+not a privileged binary; install the helper separately from inspected sources.
