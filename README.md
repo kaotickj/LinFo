@@ -40,7 +40,7 @@ The CLI emits progress to stderr. JSON is printed to stdout if `--output` is abs
 Only after reviewing the `privileged/linfo-helper` source, install the **root-owned** helper:
 
 ```bash
-sudo ./scripts/install-helper.sh
+sudo sh ./scripts/install-helper.sh
 ```
 
 `pkexec` and a working PolicyKit authentication agent are required for GUI-based changes. No custom policy or passwordless elevation is installed. The helper must exist at `/usr/local/libexec/linfo-helper`, be root-owned and not writable by others. Do **not** run the desktop GUI using `sudo` or `pkexec`.
