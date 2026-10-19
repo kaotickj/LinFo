@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linfo-hardener"
+version = "0.6.0a1"
+description = "LinFo: local Linux hardening auditor with PyQt6 GUI and guarded remediation"
+requires-python = ">=3.10"
+authors = [{name = "Kaotick Jay"}]
+dependencies = ["PyQt6>=6.5,<7"]
+keywords = ["linux", "hardening", "auditing", "security", "pyqt6"]
+
+[project.scripts]
+linfo = "linfo.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
