@@ -1,0 +1,41 @@
+name: LinFo tests
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install project
+        run: python -m pip install -e .
+      - name: Syntax check
+        run: python -m compileall -q src privileged/linfo-helper
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Headless scanner smoke test
+        run: |
+          set +e
+          linfo --cli --output /tmp/linfo-test.json
+          result=$?
+          set -e
+          test "$result" -eq 0 -o "$result" -eq 2
+          python -c 'import json; x=json.load(open("/tmp/linfo-test.json")); assert x["findings"]'
+      - name: GUI startup smoke test (offscreen)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python - <<'PY'
+          from PyQt6.QtWidgets import QApplication
+          from linfo.gui import MainWindow
+          app = QApplication([])
+          w = MainWindow('workstation')
+          assert w.windowTitle().startswith('LinFo')
+          w.close()
+          PY
