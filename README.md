@@ -1,108 +1,139 @@
-# LinFo 0.6 Alpha
+# LinFo 0.7 Alpha
 
 **Original LinFo project by Kaotick Jay**  
-Linux security inventory, hardening assessment, and controlled remediation using Python and PyQt6.
+Linux system inventory, local security assessment, and guided hardening using Python and PyQt6.
 
-This is a functional **first development milestone**, not an audited, compliant or production-certifying security suite. It intentionally does not execute exploitation, collect credentials, read shell histories, or automatically reconfigure SSH/firewalls.
+Version **0.7.0a2** continues the existing Python application and its management tools. Assessments run in the background, show findings as checks finish, and can be cancelled while retaining a partial report. This remains a development alpha, not an audited or compliance-certifying security suite.
 
-## Quick start on Debian / Ubuntu (GUI)
+## Install on Debian 13
+
+For a built Debian package, open a terminal in its download directory:
 
 ```bash
-sudo apt install python3 python3-venv python3-pip
-cd linfo-python
+sha256sum -c linfo_0.7.0~a2_all.deb.sha256
+sudo apt install ./linfo_0.7.0~a2_all.deb
+linfo
+```
+
+The package adds an application-menu entry and depends on distribution Python 3.10+ and **python3-pyqt6 6.5+**. Debian 13 is the target; older distributions may not provide the required Qt binding version. The package includes the optional privileged helper's source and installer, but does **not** activate the helper.
+
+## Run from the development branch
+
+```bash
+sudo apt install git python3 python3-venv python3-pip
+git clone --branch development https://github.com/kaotickj/LinFo.git
+cd LinFo
 python3 -m venv .venv
-.venv/bin/pip install -e .
-.venv/bin/linfo
+.venv/bin/python -m pip install -e .
+./launch.sh
 ```
 
-You may need PyQt6 system/Qt display libraries installed for your desktop (XFCE, KDE, Wayland or X11). Keep the GUI **unprivileged**.
+On Debian 13, an alternative is to install `python3-pyqt6` through APT and use `./launch.sh` directly. The launcher checks the project virtual environment and system Python. Run the desktop as your **normal user**, including when you intend to use guided administration. An assessment does not require the privileged helper; inaccessible checks are labeled `UNKNOWN`.
 
-## Headless / automation usage
+If Qt reports an `xcb` platform-plugin dependency error, check your distribution's desktop runtime libraries; Debian/Ubuntu packages used by CI include `libegl1`, `libgl1`, `libxkbcommon-x11-0`, and `libxcb-cursor0`. The `offscreen` Qt backend is for automated tests, not the interactive desktop.
+
+## Desktop workflow
+
+Choose the **workstation** or **server** profile and select **Run Security Assessment**. Findings appear while the assessment runs. **Cancel** stops collection and preserves completed findings for review and export. The default total assessment budget is 180 seconds; a deadline also produces a partial report.
+
+| Tab | Available controls |
+| --- | --- |
+| **Overview** | Host information, assessment state, and PASS / WARN / FAIL / UNKNOWN counts. |
+| **Findings** | Text search, status/category filters, sortable columns, detailed evidence, copy-finding control, and the existing **Manage** or **Review** actions. |
+| **Hardening** | Review selected sysctl changes, use rollback receipts, and open allowlisted configuration files in a chosen graphical editor. |
+| **Inventory** | OS, CPU, memory, kernel, mounted devices, interfaces, routes, and virtualization information where available. |
+| **Activity** | Live assessment progress and management activity. |
+| **Reports** | Export HTML, JSON, CSV, or plain text; open saved JSON reports; compare against a saved JSON baseline. |
+
+The window geometry, findings-pane layout, profile, status filter, and chosen editor are remembered. Export includes the entire collected assessment, regardless of the current table filter. CSV contains finding rows; retain JSON, HTML, or TXT when you also need host information and assessment-completeness metadata.
+
+Saved JSON imports and cancelled assessments are **review-only**: they do not authorize changes to the current machine. Run a fresh local assessment before using their findings to manage this host. Missing controls in a partial comparison are marked **not observed**, rather than treated as fixed or removed.
+
+## Headless and automation usage
 
 ```bash
-.venv/bin/linfo --cli --profile server --output server-audit.json
+.venv/bin/linfo --cli --profile server --timeout 180 --output server-audit.json
 .venv/bin/linfo --cli --profile workstation --output workstation-audit.html
-.venv/bin/linfo --cli --profile server --compare earlier-audit.json --output latest-audit.json
+.venv/bin/linfo --cli --compare earlier-audit.json --output latest-audit.json
+.venv/bin/linfo --cli --quiet --output assessment.txt
 ```
 
-The CLI emits progress to stderr. JSON is printed to stdout if `--output` is absent. The CLI returns code **2** if at least one high/critical `FAIL` is found. Warnings, and unavailable checks marked `UNKNOWN`, do not cause exit 2. Use strict external policies if a different CI threshold is desired.
+After installing the Debian package, use `linfo` in place of `.venv/bin/linfo`. `--headless` is an alias for `--cli`; `--output` accepts `.json`, `.html`, `.csv`, and `.txt`. Without an output file, JSON goes to stdout. Progress and comparison information go to stderr; `--quiet` suppresses progress. `--timeout` accepts 1–7200 seconds and defaults to 180.
 
-## GUI tabs
+| Exit code | Meaning |
+| --- | --- |
+| **0** | Assessment finished without a high/critical `FAIL`; inspect `UNKNOWN` findings and completeness metadata separately. |
+| **2** | At least one high/critical `FAIL`, or a command-line argument/usage error. |
+| **1** | A runtime, input, or export error prevented the requested operation. |
+| **130** | Assessment cancelled by SIGINT/SIGTERM or its total deadline; a partial report is written when possible. |
 
-- **Overview:** host and counts by PASS / WARN / FAIL / UNKNOWN.
-- **Findings:** filterable table with severity, observed evidence, recommendations and limited links.
-- **Hardening:** select narrow, reversible sysctl changes. Explicit approval + PolicyKit authorization required.
-- **Inventory:** kernel, OS, RAM, CPU, mounted devices, interfaces, virtualized status where tools exist.
-- **Reports:** HTML/JSON/CSV exports and a comparison against a saved JSON scan.
+Cancellation does not count as a successful assessment. Warnings and unavailable controls do not by themselves trigger exit 2.
 
-## Privileged remediation (optional)
+## What gets assessed
 
-Only after reviewing the `privileged/linfo-helper` source, install the **root-owned** helper:
+- Account inventory, additional UID-0 accounts, administrative groups, account-database file modes, and current-user SSH key permissions using metadata only.
+- TCP and UDP listeners, selected sensitive wildcard-bound ports, recognized firewall runtime state, accessible nftables policies, and IPv4 kernel network settings.
+- Process ASLR, Yama ptrace restrictions, protected links, diagnostic disclosure controls, restricted BPF, kexec, core dumps, and observable MAC/LSM enforcement.
+- Effective global `sshd -T` settings where accessible, with explicit limits for connection-specific `Match` blocks and a running daemon's loaded configuration.
+- Cached package-update candidates for **APT, DNF/YUM, Zypper, and pacman**; effective APT unattended-upgrade configuration and its standard timer.
+- Audit/monitoring services, time synchronization, system logging, AIDE presence, PAM quality-module references, SUID metadata, selected world-writable files, shared-temp sticky bits, startup-path modes, and selected mount options.
+
+Missing tools, denied access, truncated output, unsupported formats, and failed probes produce `UNKNOWN` or explicit coverage limits. Module presence is not proof of policy enforcement; an installed firewall command is not proof of filtering. No check determines kernel exploitability from a version number alone.
+
+### Cached update semantics
+
+Update checks do not refresh repositories or download packages. DNF/YUM use cache-only queries with plugins disabled; Zypper uses `--no-refresh` and XML output; pacman reads its local sync databases. Plugin-provided repositories may be absent from the DNF/YUM view. DNF/YUM exit 100 means updates are available, while pacman's exit 1 is treated as an empty query only when both output and diagnostics are empty.
+
+Zero candidates are reported as `INFO`, **not** as proof that the system is current. Cache freshness, repository completeness, and security-advisory coverage still require normal maintenance review. Non-APT adapters have parser/error regression tests; validation on each target distribution remains necessary.
+
+Reference semantics: [APT](https://manpages.debian.org/trixie/apt/apt.8.en.html), [DNF4](https://dnf.readthedocs.io/en/latest/command_ref.html), [DNF5](https://dnf5.readthedocs.io/en/latest/dnf5.8.html), [Zypper](https://manpages.opensuse.org/Tumbleweed/zypper/zypper.8.en.html), and [pacman](https://man.archlinux.org/man/pacman.8.en.html).
+
+## Optional guided administration
+
+The existing management workflow is retained. **Manage** offers supported package installation, allowlisted service enable/disable operations, configuration editing through `sudoedit`, and reversible sysctl changes. Unsupported or high-impact findings remain guided manual review. Assessments themselves do not apply these changes.
+
+After reviewing `privileged/linfo-helper`, install the root-owned helper from the source checkout:
 
 ```bash
 sudo ./scripts/install-helper.sh
 ```
 
-`pkexec` and a working PolicyKit authentication agent are required for GUI-based changes. No custom policy or passwordless elevation is installed. The helper must exist at `/usr/local/libexec/linfo-helper`, be root-owned and not writable by others. Do **not** run the desktop GUI using `sudo` or `pkexec`.
-
-The helper supports only these predefined changes: ASLR, protected links, Yama ptrace restrictions, IPv4 redirect settings, and IPv4 source routing. Some are incompatible with specialized tooling, debugging, routing or security testing setups. **Nothing is selected automatically.**
-
-On success a UUID receipt is returned and the prior state is saved root-only under `/var/lib/linfo/changes`. Enter that receipt in the GUI rollback dialog to attempt a rollback. Rollback deliberately refuses to overwrite newer administrator changes or later LinFo transactions. A crash or permission error may require manual recovery using the receipt and `/etc/sysctl.d/99-zz-linfo-hardening.conf`.
-
-**Important:** Changes made to `/etc/sysctl.d/` are intended to persist across reboots, but may be superseded by other settings or system initialization behavior. Validate actual state on reboot. SSH/iptables/nftables/firewalld/UFW service changes and upgrades are *review-only* in this version; a bad automatic change could lock administrators out of remote hosts.
-
-## What gets assessed
-
-- Account inventory, additional UID-0 accounts, administrative groups, password database file permissions, current user's SSH private-key permissions (metadata only).
-- Listening network services and risky wildcard-bound ports, recognized host firewall activity or accessible nftables rules, IPv4 kernel network settings.
-- Kernel ASLR, Yama ptrace, protected links, memory disclosure restrictions, restricted BPF, kexec, core dumps, and available MAC/LSM status.
-- Effective global SSH configuration via `sshd -T` where accessible, with an explicit caution that Match contexts can differ.
-- APT cached upgrade status and unattended-upgrades configuration, selected audit and monitoring services, time sync, system logging, AIDE presence.
-- SUID metadata inventory, selected world-writable files, shared temp-directory sticky bits, core startup-file modes, selected filesystem mount options.
-
-An unavailable probe, permission denial or unsupported package manager is reported as **UNKNOWN**, not as a false PASS. In particular, an empty APT update cache does **not** prove that a system is current. No check determines exploitability merely from a Linux kernel version. Firewall command installation does not prove that traffic is filtered. Missing AIDE/Fail2ban does not automatically mean compromised.
-
-## Security and privacy boundaries
-
-- Host-local checks, no uploads, telemetry, cloud API calls or network probes.
-- No capture of SSH private keys, password hashes, tokens or shell-history content.
-- Some reports still contain hostnames, network addresses, usernames and system topology: protect report files.
-- Scanner subprocesses use argument arrays and timeouts; no shell interpolation.
-- Auto-remediation only uses an explicit action allowlist, root-owned executable, isolated Python interpreter, root-only backups and post-apply runtime validation.
-- GUI and CLI scans are unprivileged by default; unavailable root-only checks are labeled UNKNOWN.
-- No claims of CIS, DISA STIG, NIST or PCI compliance. Mapping to a particular benchmark requires a separately validated, versioned policy pack.
-
-## Test from source
+For the Debian package, inspect `/usr/share/linfo/privileged/linfo-helper`, then use:
 
 ```bash
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-python3 -m compileall -q src
+sudo /usr/share/linfo/scripts/install-helper.sh
 ```
 
-## Planned next modules
+The trusted helper is installed at `/usr/local/libexec/linfo-helper`. A working PolicyKit agent and `pkexec` are required for helper operations. The GUI verifies root ownership and non-writability by other users; it never elevates the whole desktop application. Configuration editing uses a desktop terminal and the selected unprivileged graphical editor through `sudoedit`. No passwordless authorization policy is installed.
 
-1. Distro-specific policy adapters for Debian 13/Ubuntu, Fedora/RHEL, openSUSE and Arch (today's strong package update adapter is APT only).
-2. Privileged **read-only** scan helper for firewall policies and per-context SSH effective configuration; no global elevation of the GUI.
-3. Context-aware hardening plans for OpenSSH, PAM, sudo, auditd, logging, file integrity and service sandboxing, with dry-run diff, preflight checks, confirmation and recovery plans.
-4. Signed, versioned benchmark/policy profiles, exceptions with expiration, drift monitoring and authenticated fleet export.
-5. Application packaging, reproducible builds, CI test matrix and independent code review of privileged helper.
+Sysctl changes are explicitly selected and cover ASLR, protected links, Yama ptrace, IPv4 redirects, and source routing. They can affect debugging, routing, or specialized security tooling. A successful sysctl transaction returns a UUID receipt and stores prior state root-only under `/var/lib/linfo/changes`. **Rollback by Receipt ID** refuses to overwrite later administrator changes or newer LinFo transactions. Preserve the receipt; interrupted changes may require manual recovery.
+
+Package installation and service operations do **not** have transactional sysctl-style rollback. Package removal is not automated; service reversal requires reviewing dependencies. SSH/firewall configuration and package upgrades remain review-led operations, not automatic scan responses. Wait for an approved operation's result before closing the window.
+
+Persistent sysctls are written to `/etc/sysctl.d/99-zz-linfo-hardening.conf`; other configuration or boot behavior can supersede them. Validate the effective settings after reboot.
+
+## Reports and privacy
+
+Assessments are host-local, with no telemetry, uploads, cloud calls, or remote network probing. LinFo does not collect credentials, SSH private-key contents, password hashes, or shell histories. Reports can still contain hostnames, addresses, usernames, and system topology.
+
+Report exports are written atomically with owner-only **0600** permissions. HTML escapes collected text, CSV neutralizes spreadsheet-formula prefixes, and JSON imports validate bounded report data. Saved reports are evidence for review, not executable input or authorization for administration.
+
+## Tests and builds
+
+```bash
+QT_QPA_PLATFORM=offscreen PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -m compileall -q src privileged/linfo-helper
+python3 scripts/build-deb.py
+```
+
+The Debian build requires `dpkg-deb` and creates `dist/linfo_0.7.0~a2_all.deb` plus its SHA-256 file. It does not install the package or activate the helper. Version metadata is derived from `src/linfo/__init__.py`.
+
+The existing Linux build workflow produces the PyInstaller executable in the **LinFo-Linux-x86_64** artifact, and a dependency-based installer in **LinFo-Debian**. The executable bundles Python/PyQt6 but still needs compatible Linux desktop libraries. Both formats retain the optional helper as a separate, explicit installation step. CI exercises Python 3.10/3.12/3.13, offscreen GUI behavior, package parsers, reports, cancellation, and the existing helper/management tests.
+
+## Further development
+
+Remaining work includes a privileged read-only helper for deeper firewall/SSH assessment, validation across supported distributions, context-aware hardening plans with preflight/recovery, versioned benchmark policies and exceptions, and independent review of privileged operations. LinFo does not claim CIS, DISA STIG, NIST, or PCI certification.
 
 ## Licensing
 
-No license has been selected for this derivative release. The original author should choose an explicit license before publication or public distribution.
-
-## Interactive management (v0.7 development)
-
-The Findings table includes a Manage control for each finding. Supported remediations install
-allowlisted packages, enable/disable supported systemd units, apply rollback-capable sysctls,
-or open configuration in a chosen graphical editor through `sudoedit`. Unsupported or high-risk
-findings provide guided manual review, not deceptive one-click actions.
-
-Distro and package-manager detection supports apt, dnf/yum, zypper, and pacman. The unprivileged
-GUI requests PolicyKit authentication for approved helper operations. The helper MUST be installed
-in a root-owned location with `sudo ./scripts/install-helper.sh` before system modifications.
-`sudoedit` uses the desktop terminal and the selected editor so the editor itself stays unprivileged.
-
-A packaged Linux executable is built by `.github/workflows/build-linux.yml` on the development branch.
-Download the `LinFo-Linux-x86_64` Actions artifact and unpack its tarball. The executable is
-not a privileged binary; install the helper separately from inspected sources.
+See the repository's existing [GNU General Public License v3](LICENSE). Original concept and authorship: **Kaotick Jay**.

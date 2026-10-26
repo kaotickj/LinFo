@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  QT_QPA_PLATFORM: offscreen
+
 jobs:
   build-linux:
     runs-on: ubuntu-24.04
@@ -28,18 +31,16 @@ jobs:
           python -m pip install . 'pyinstaller>=6.16,<7'
       - name: Build standalone desktop executable
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name LinFo --collect-all PyQt6 linfo_launcher.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name LinFo --collect-all PyQt6 --add-data 'LinFo.png:.' linfo_launcher.py
       - name: Smoke-test binary
-        env:
-          QT_QPA_PLATFORM: offscreen
         run: |
           ./dist/LinFo --version
           set +e
-          ./dist/LinFo --cli --output /tmp/linfo-binary-audit.json
+          ./dist/LinFo --cli --timeout 60 --output /tmp/linfo-binary-audit.json
           code=$?
           set -e
           test "$code" -eq 0 -o "$code" -eq 2
-          python -c 'import json; assert json.load(open("/tmp/linfo-binary-audit.json"))["findings"]'
+          python -c 'import json; r=json.load(open("/tmp/linfo-binary-audit.json")); assert r["findings"] and not r["cancelled"]'
           set +e
           timeout 10s ./dist/LinFo > /tmp/linfo-gui-smoke.log 2>&1
           gui_code=$?
@@ -55,7 +56,7 @@ jobs:
           install -m 0755 dist/LinFo release/LinFo-Linux-x86_64/LinFo
           install -m 0755 privileged/linfo-helper release/LinFo-Linux-x86_64/privileged/linfo-helper
           install -m 0755 scripts/install-helper.sh release/LinFo-Linux-x86_64/scripts/install-helper.sh
-          cp README.md release/LinFo-Linux-x86_64/
+          cp README.md CHANGELOG.md LinFo.png release/LinFo-Linux-x86_64/
           if [ -f LICENSE ]; then cp LICENSE release/LinFo-Linux-x86_64/; fi
           cat > release/LinFo-Linux-x86_64/LinFo.desktop <<'DESKTOP'
           [Desktop Entry]
@@ -63,15 +64,25 @@ jobs:
           Name=LinFo Security Hardening
           Comment=Linux security inventory and hardening
           Exec=LinFo
+          Icon=LinFo
           Terminal=false
           Categories=System;Security;
           DESKTOP
           tar -czf LinFo-Linux-x86_64.tar.gz -C release LinFo-Linux-x86_64
           sha256sum LinFo-Linux-x86_64.tar.gz > LinFo-Linux-x86_64.tar.gz.sha256
+      - name: Build Debian package
+        run: python scripts/build-deb.py --output dist
       - uses: actions/upload-artifact@v4
         with:
           name: LinFo-Linux-x86_64
           path: |
             LinFo-Linux-x86_64.tar.gz
             LinFo-Linux-x86_64.tar.gz.sha256
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LinFo-Debian
+          path: |
+            dist/linfo_*.deb
+            dist/linfo_*.deb.sha256
           retention-days: 30
